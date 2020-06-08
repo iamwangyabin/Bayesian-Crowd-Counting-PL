@@ -1,7 +1,6 @@
 from utils.regression_trainer import RegTrainer
 import argparse
 import os
-import torch
 args = None
 
 def parse_args():

@@ -4,9 +4,7 @@ import numpy as np
 from datasets.crowd import Crowd
 from models.vgg import vgg19
 import argparse
-
-args = None
-
+from collections import OrderedDict   #导入此模块
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Test ')
@@ -18,7 +16,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-
 if __name__ == '__main__':
     args = parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device.strip()  # set vis gpu
@@ -26,10 +23,18 @@ if __name__ == '__main__':
     datasets = Crowd(os.path.join(args.data_dir, 'test'), 512, 8, is_gray=False, method='val')
     dataloader = torch.utils.data.DataLoader(datasets, 1, shuffle=False,
                                              num_workers=8, pin_memory=False)
+
+    base_weights = torch.load(args.save_dir, map_location=torch.device('cuda'))["state_dict"]
+    new_state_dict = OrderedDict()
+    for k, v in base_weights.items():
+        name = k[6:]  # remove `vgg.`，即只取vgg.0.weights的后面几位
+        new_state_dict[name] = v
+
     model = vgg19()
     device = torch.device('cuda')
+    model.load_state_dict(new_state_dict)
     model.to(device)
-    model.load_state_dict(torch.load(os.path.join(args.save_dir, 'best_model.pth'), device))
+
     epoch_minus = []
 
     for inputs, count, name in dataloader:
